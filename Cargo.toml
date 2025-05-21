@@ -4,10 +4,14 @@ version = "0.0.3"
 edition = "2021"
 license = "MIT"
 description = "A set of modules for easily managing Nix and NixOS packages and options"
-repository = "https://github.com/xinux-org/nix-data/"
+repository = "https://github.com/xinux-org/nix-data"
 readme = "README.md"
 include = ["src/*", "Cargo.toml", "LICENSE*", "README.md"]
 keywords = ["nix", "nixos", "nix-editor", "xinux"]
+authors = [
+  "Sokhibjon Orzikulov <sakhib@orzklv.uz>",
+  "Victor Fuentes <vlinkz@snowflakeos.org>",
+]
 
 [dependencies]
 reqwest = { version = "0.11", features = ["blocking", "brotli"] }
