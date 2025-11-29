@@ -99,15 +99,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1764323867,
-        "narHash": "sha256-sc/e5XZo4OKgYgtw0xPnlOo8kMvqpC0Cey/5+Bepft8=",
+        "lastModified": 1764399640,
+        "narHash": "sha256-9kglk1ZUFDYjx2peCLDGorPLAoiqnoyUYZNmAoobh9Q=",
         "owner": "xinux-org",
         "repo": "lib",
-        "rev": "e3fbe264263d9a356124bd1aa76a7de5aa81b441",
+        "rev": "f1ca080bdc1135906e7788af2b2f3053e9afb741",
         "type": "github"
       },
       "original": {
         "owner": "xinux-org",
+        "ref": "release-25.11",
         "repo": "lib",
         "type": "github"
       }
