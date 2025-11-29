@@ -12,6 +12,6 @@
       inherit inputs;
       alias.shells.default = "nix-data";
       src = ./.;
-      hydraJobs = inputs.self.packages.x86_64-linux;
     };
 }
+-
