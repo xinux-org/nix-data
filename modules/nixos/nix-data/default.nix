@@ -1,10 +1,13 @@
-{ config, lib, pkgs, ... }:
-with lib;
-let
-  cfg = config.programs.nix-data;
-  jsonFormat = pkgs.formats.json { };
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; let
+  cfg = config.programs.nix-data;
+  jsonFormat = pkgs.formats.json {};
+in {
   options = {
     programs.nix-data = {
       enable = mkEnableOption "nix-data";
@@ -35,6 +38,6 @@ in
   };
 
   config = mkIf cfg.enable {
-      environment.etc."nix-data/config.json".source = jsonFormat.generate "config.json" { inherit (cfg) systemconfig flake flakearg generations; };
-    };
+    environment.etc."nix-data/config.json".source = jsonFormat.generate "config.json" {inherit (cfg) systemconfig flake flakearg generations;};
+  };
 }

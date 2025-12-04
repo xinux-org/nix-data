@@ -10,10 +10,12 @@
   openssl,
   pkg-config,
   sqlite,
+  nixd,
   ...
 }:
 mkShell {
   nativeBuildInputs = [
+    nixd
     rust-analyzer
     rustc
     rustfmt
