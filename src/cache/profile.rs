@@ -15,7 +15,7 @@ use super::nixos::nixospkgs;
 
 #[derive(Debug, Deserialize)]
 struct ProfilePkgsRoot {
-    elements: Vec<ProfilePkgOut>,
+    elements: HashMap<String, ProfilePkgOut>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,13 +46,16 @@ pub fn getprofilepkgs() -> Result<HashMap<String, ProfilePkg>> {
     {
         return Ok(HashMap::new());
     }
-    let profileroot: ProfilePkgsRoot = serde_json::from_reader(File::open(&format!(
+    let file = File::open(&format!(
         "{}/.nix-profile/manifest.json",
         std::env::var("HOME")?
-    ))?)?;
+    ))?;
+    let profileroot: ProfilePkgsRoot = serde_json::from_reader(file)?;
+
     let mut out = HashMap::new();
-    for pkg in profileroot.elements {
-        if let (Some(attrpath), Some(originalurl)) = (pkg.attrpath, pkg.originalurl) {
+    for pkg in profileroot.elements.values() {
+        if let (Some(attrpath), Some(originalurl)) = (pkg.attrpath.clone(), pkg.originalurl.clone())
+        {
             let attr = if attrpath.starts_with("legacyPackages") {
                 attrpath
                     .split('.')
@@ -92,6 +95,9 @@ pub async fn getprofilepkgs_versioned() -> Result<HashMap<String, String>> {
         return Ok(HashMap::new());
     }
     let profilepkgs = getprofilepkgs()?;
+
+    // println!("{profilepkgs:?}");
+
     let latestpkgs = if Path::new(&format!("{}/nixpkgs.db", &*CACHEDIR)).exists() {
         format!("{}/nixpkgs.db", &*CACHEDIR)
     } else {
@@ -156,6 +162,7 @@ pub async fn nixpkgslatest() -> Result<String> {
     }
 
     if !pinned {
+        // println!("&nixpkgsver url: {:?}", &nixpkgsver);
         let verurl = if let Some(v) = &nixpkgsver {
             format!(
                 "https://raw.githubusercontent.com/xinux-org/database/main/{}/nixpkgs.ver",
@@ -166,6 +173,9 @@ pub async fn nixpkgslatest() -> Result<String> {
         };
         debug!("Checking nixpkgs version");
         let resp = reqwest::get(&verurl).await;
+
+        // println!("version url: {verurl:?}");
+
         let resp = if let Ok(r) = resp {
             r
         } else {
@@ -179,9 +189,12 @@ pub async fn nixpkgslatest() -> Result<String> {
                 return Err(anyhow!("Could not find latest nixpkgs version"));
             }
         };
+        // println!("responce: {:?}", resp.status());
+
         latestnixpkgsver = if resp.status().is_success() {
             resp.text().await?
         } else {
+            // println!("errro is here");
             return Err(anyhow!("Could not find latest nixpkgs version"));
         };
         debug!("Latest nixpkgs version: {}", latestnixpkgsver);
