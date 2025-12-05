@@ -1,6 +1,6 @@
 use crate::CACHEDIR;
 use anyhow::{anyhow, Context, Result};
-use log::{debug, info};
+use log::debug;
 use reqwest::Client;
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -123,36 +123,17 @@ pub async fn getprofilepkgs_versioned() -> Result<HashMap<String, String>> {
     Ok(out)
 }
 
-async fn get_full_rev(version: &str) -> Result<String> {
-    let short = version.split('.').last().unwrap();
-
-    let url = format!(
-        "https://api.github.com/repos/xinux-org/nixpkgs/commits/{}",
-        short
-    );
-
-    let client = Client::new();
-
-    let resp = client
-        .get(url)
-        .header("User-Agent", "rust-reqwest")
-        .send()
-        .await?;
-
-    let json: serde_json::Value = resp.json().await?;
-    let full = json["sha"].as_str().unwrap().to_string();
-    Ok(full)
-}
-
 async fn get_full_ver() -> Result<String> {
+    // returns full nixos version of system 25.11.asdasd.asd
     let short_version = std::process::Command::new("sh")
         .arg("-c")
         .arg(r"nixos-version | grep -oP '^\d+\.\d+'")
         .output()
         .expect("failed to get nixos-version");
+    let v = String::from_utf8(short_version.stdout)?;
     let url = format!(
-        "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-{:?}/nixpkgs.ver",
-        String::from_utf8(short_version.stdout)
+        "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-{}/nixpkgs.ver",
+        v.trim()
     );
 
     // Fallback url
@@ -171,7 +152,7 @@ async fn get_full_ver() -> Result<String> {
             return Ok(resp.text().await?);
         }
         _ => {
-            eprintln!("Primary version fetch failed, trying unstable...");
+            eprintln!("Primary nixpkgs.ver fetch failed, trying unstable...");
         }
     }
 
@@ -184,12 +165,37 @@ async fn get_full_ver() -> Result<String> {
 
     if !fallback.status().is_success() {
         return Err(anyhow!(
-            "Failed to fetch version from both release and unstable channels"
+            "Failed to fetch version from both release and unstable channel versions"
         ));
     }
 
     Ok(fallback.text().await?)
 }
+
+// async fn get_full_rev(version: &str) -> Result<String> {
+//     // returns full 821f1a2ebab0f13d6d65170d6bd7d2b3a182efdb
+//     let short = version.split('.').last().unwrap();
+
+//     let url = format!(
+//         "https://api.github.com/repos/xinux-org/nixpkgs/commits/{}",
+//         short
+//     );
+
+//     let client = Client::new();
+
+//     let resp = client
+//         .get(url)
+//         .header("User-Agent", "rust-reqwest")
+//         .send()
+//         .await?;
+
+//     let json: serde_json::Value = resp.json().await?;
+//     let full = json["sha"]
+//         .as_str()
+//         .expect("maybe github API rate limit exceeded")
+//         .to_string();
+//     Ok(full)
+// }
 
 /// Downloads a list of available package versions `packages.db`
 /// and returns the path to the file.
@@ -199,123 +205,75 @@ pub async fn nixpkgslatest() -> Result<String> {
         std::fs::create_dir_all(&*CACHEDIR)?;
     }
 
-    let mut nixpkgsver = None;
-    let mut pinned = false;
-
-    let mut latestnixpkgsver = String::new();
-
+    // we will have internet before install something
+    // let mut pinned = false;
+    // returns 2x.xx
     let ver = std::process::Command::new("sh")
         .arg("-c")
         .arg(r"nixos-version | grep -oP '^\d+\.\d+'")
         .output()
         .expect("failed to get nixos-version");
     let ver_string = String::from_utf8(ver.stdout)?;
-    nixpkgsver = Some(ver_string.trim());
-    latestnixpkgsver = get_full_rev(&get_full_ver().await?).await?;
 
-    pinned = false;
-
-    if !pinned {
-        println!("&nixpkgsver url: {:?}", &nixpkgsver);
-        let verurl = if let Some(v) = &nixpkgsver {
-            format!(
-                "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-{}/nixpkgs.ver",
-                v
-            )
-        } else {
-            String::from("https://raw.githubusercontent.com/xinux-org/database/main/nixpkgs-unstable/nixpkgs.ver")
-        };
-        debug!("Checking nixpkgs version");
-        let resp = reqwest::get(&verurl).await;
-
-        let resp = if let Ok(r) = resp {
-            r
-        } else {
-            // Internet connection failed
-            // Check if we can use the old database
-            let dbpath = format!("{}/nixpkgs.db", &*CACHEDIR);
-            if Path::new(&dbpath).exists() {
-                info!("Using old database");
-                return Ok(dbpath);
-            } else {
-                return Err(anyhow!("Could not find latest nixpkgs version"));
-            }
-        };
-        println!(
-            "responce STATUS: {:?}",
-            get_full_rev(&get_full_ver().await?).await?
-        );
-
-        latestnixpkgsver = get_full_rev(&get_full_ver().await?).await?;
-        debug!("Latest nixpkgs version: {}", latestnixpkgsver);
-    }
+    // hash of commit like: // 2x.xx
+    let latestnixpkgsver = get_full_ver().await?;
 
     // Check if latest version is already downloaded
+    if !Path::new(&format!("{}/nixpkgs.ver", &*CACHEDIR)).exists() {
+        File::create(format!("{}/nixpkgs.ver", &*CACHEDIR))?
+            .write_all(&latestnixpkgsver.as_bytes())?;
+    }
+
     if let Ok(prevver) = fs::read_to_string(&format!("{}/nixpkgs.ver", &*CACHEDIR)) {
-        if prevver == latestnixpkgsver && Path::new(&format!("{}/nixpkgs.db", &*CACHEDIR)).exists()
+        if prevver == latestnixpkgsver.clone()
+            && Path::new(&format!("{}/nixpkgs.db", &*CACHEDIR)).exists()
         {
             debug!("No new version of nixpkgs found");
             return Ok(format!("{}/nixpkgs.db", &*CACHEDIR));
         }
-    }
-    pinned = true;
+        let mut url = format!(
+            "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
+            ver_string.trim(),
+        );
+        println!("{}", url);
+        let mut resp = reqwest::get(&url).await?;
+        let mut pkgsout: Vec<u8> = Vec::new();
 
-    let url = if pinned {
-        format!(
-            "https://github.com/xinux-org/registry/raw/refs/heads/main/nixpkgs-unstable/{}.json.br",
-            latestnixpkgsver
-        )
-    } else if let Some(v) = &nixpkgsver {
-        format!(
-            "https://raw.githubusercontent.com/xinux-org/database/main/{}/nixpkgs_versions.db.br",
-            v
-        )
-    } else {
-        String::from("https://raw.githubusercontent.com/xinux-org/database/main/nixpkgs-unstable/nixpkgs_versions.db.br")
-    };
+        if resp.status().is_success() {
+            println!(
+                "response getting {:?} pkgs: {:?}",
+                ver_string.trim(),
+                resp.status()
+            );
+            let r = resp.bytes().await?;
+            println!("Downloaded");
+            let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
 
-    debug!("Downloading nix-data database");
-    // Disable auto-decompression to handle manual brotli decompression
-    let client = reqwest::Client::builder().no_brotli().build()?;
-    let resp = client.get(url).send().await?;
-
-    if !resp.status().is_success() {
-        return Err(anyhow!(
-            "Failed to download .json.br (status {})",
-            resp.status()
-        ));
-    }
-
-    if resp.status().is_success() {
-        debug!("Writing nix-data database");
-        {
-            let bytes = resp.bytes().await?;
-            if bytes.is_empty() {
-                return Err(anyhow!("Downloaded .br file is empty"));
-            }
-
-            let mut decompressed = Vec::new();
-            let mut br = brotli::Decompressor::new(bytes.as_ref(), 4096);
-            br.read_to_end(&mut decompressed)
+            br.read_to_end(&mut pkgsout)
                 .context("Failed to decompress brotli data")?;
-
-            if decompressed.is_empty() {
-                return Err(anyhow!("Brotli decompression resulted in empty data"));
+            println!("Decompressed");
+        } else {
+            url = "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br".to_string();
+            println!("{}", url);
+            resp = reqwest::get(url).await?;
+            println!("response getting latest unstable pkgs: {:?}", resp.status());
+            if resp.status().is_success() {
+                let r = resp.bytes().await?;
+                println!("Downloaded");
+                let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
+                br.read_to_end(&mut pkgsout)?;
+                println!("Decompressed");
             }
-
-            // SQLite
-            let dbpath = format!("{}/nixpkgs.db", &*CACHEDIR);
-            let mut out = File::create(&dbpath).context("Failed to create database file")?;
-            out.write_all(&decompressed)
-                .context("Failed to write decompressed database to file")?;
         }
+
+        let dbfile = format!("{}/nixpkgs.db", &*CACHEDIR);
+        let mut out = File::create(&dbfile).context("Failed to create database file")?;
+        out.write_all(&pkgsout)
+            .context("Failed to write decompressed database to file")?;
+
         debug!("Writing nix-data version");
-        // Write version downloaded to file
-        File::create(format!("{}/nixpkgs.ver", &*CACHEDIR))?
-            .write_all(latestnixpkgsver.as_bytes())?;
-    } else {
-        return Err(anyhow!("Failed to download latest nixpkgs.db.br"));
     }
+
     Ok(format!("{}/nixpkgs.db", &*CACHEDIR))
 }
 
