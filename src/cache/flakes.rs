@@ -1,6 +1,7 @@
 use crate::CACHEDIR;
+use crate::utils::get_full_ver;
 use anyhow::{Context, Result};
-use log::info;
+use log::{debug};
 use sqlx::SqlitePool;
 use std::{
     collections::{HashMap, HashSet},
@@ -12,106 +13,86 @@ use std::{
 
 use super::{
     nixos::{self, getnixospkgs, nixospkgs},
-    NixPkg,
+    // NixPkg,
 };
 
 /// Gets a list of all packages in the NixOS system with their name and version.
 /// Can be used to find what versions of system packages are currently installed.
 /// Will only work on NixOS systems.
 pub async fn flakespkgs() -> Result<String> {
-    let versionout = Command::new("nixos-version").arg("--json").output()?;
-    let version: HashMap<String, String> = serde_json::from_slice(&versionout.stdout)?;
-
-    let nixosversion = version
-        .get("nixosVersion")
-        .context("No NixOS version found")?;
-
     // If cache directory doesn't exist, create it
     if !std::path::Path::new(&*CACHEDIR).exists() {
         std::fs::create_dir_all(&*CACHEDIR)?;
     }
 
+    // we will have internet before install something
+    // let mut pinned = false;
+    // returns 2x.xx
+    let ver = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(r"nixos-version | grep -oP '^\d+\.\d+'")
+        .output()
+        .expect("failed to get nixos-version");
+    let ver_string = String::from_utf8(ver.stdout)?;
+
+    // hash of commit like: // 2x.xx
+    let latestnixpkgsver = get_full_ver().await?;
+
     // Check if latest version is already downloaded
-    if let Ok(prevver) = fs::read_to_string(&format!("{}/flakespkgs.ver", &*CACHEDIR)) {
-        if prevver.eq(nixosversion) && Path::new(&format!("{}/flakespkgs.db", &*CACHEDIR)).exists()
-        {
-            info!("No new version of NixOS flakes found");
-            return Ok(format!("{}/flakespkgs.db", &*CACHEDIR));
-        }
+    if !Path::new(&format!("{}/flakespkgs.ver", &*CACHEDIR)).exists() {
+        File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?
+            .write_all(&latestnixpkgsver.as_bytes())?;
     }
 
-    // Get list of packages from flake
-    let pkgsout = if let Some(rev) = version.get("nixpkgsRevision") {
-        let url = format!(
-            "https://raw.githubusercontent.com/xinux-org/registry/main/nixos-{}/{}.json.br",
-            nixosversion.get(0..5).context("Invalid NixOS version")?,
-            rev
+    if let Ok(prevver) = fs::read_to_string(&format!("{}/flakespkgs.ver", &*CACHEDIR)) {
+        if prevver == latestnixpkgsver.clone()
+            && Path::new(&format!("{}/flakespkgs.db", &*CACHEDIR)).exists()
+        {
+            debug!("No new version of flakespkgs found");
+            return Ok(format!("{}/flakespkgs.db", &*CACHEDIR));
+        }
+        let mut url = format!(
+            "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
+            ver_string.trim(),
         );
-        let resp = reqwest::get(&url).await?;
+        println!("{}", url);
+        let mut resp = reqwest::get(&url).await?;
+        let mut pkgsout: Vec<u8> = Vec::new();
+
         if resp.status().is_success() {
+            debug!(
+                "response getting {:?} pkgs: {:?}",
+                ver_string.trim(),
+                resp.status()
+            );
             let r = resp.bytes().await?;
+            // println!("Downloaded");
             let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
-            let mut pkgsout = Vec::new();
-            br.read_to_end(&mut pkgsout)?;
-            let pkgsjson: HashMap<String, String> = serde_json::from_slice(&pkgsout)?;
-            pkgsjson
+
+            br.read_to_end(&mut pkgsout)
+                .context("Failed to decompress brotli data")?;
+            debug!("Decompressed");
         } else {
-            let url = format!("https://raw.githubusercontent.com/xinux-org/registry/main/nixos-unstable/{}.json.br", rev);
-            let resp = reqwest::get(&url).await?;
+            url = "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br".to_string();
+            debug!("{}", url);
+            resp = reqwest::get(url).await?;
+            debug!("response getting latest unstable pkgs: {:?}", resp.status());
             if resp.status().is_success() {
                 let r = resp.bytes().await?;
+                debug!("Downloaded");
                 let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
-                let mut pkgsout = Vec::new();
                 br.read_to_end(&mut pkgsout)?;
-                let pkgsjson: HashMap<String, String> = serde_json::from_slice(&pkgsout)?;
-                pkgsjson
-            } else {
-                let pkgsout = Command::new("nix")
-                    .arg("search")
-                    .arg("--json")
-                    .arg(&format!("nixpkgs/{}", rev))
-                    .output()?;
-                let pkgsjson: HashMap<String, NixPkg> =
-                    serde_json::from_str(&String::from_utf8(pkgsout.stdout)?)?;
-                let pkgsjson = pkgsjson
-                    .iter()
-                    .map(|(k, v)| {
-                        (
-                            k.split('.').collect::<Vec<_>>()[2..].join("."),
-                            v.version.to_string(),
-                        )
-                    })
-                    .collect::<HashMap<String, String>>();
-                pkgsjson
+                debug!("Decompressed");
             }
         }
-    } else {
-        let pkgsout = Command::new("nix")
-            .arg("search")
-            .arg("--json")
-            // .arg("--inputs-from")
-            // .arg(&flakepath)
-            .arg("nixpkgs")
-            .output()?;
-        let pkgsjson: HashMap<String, NixPkg> =
-            serde_json::from_str(&String::from_utf8(pkgsout.stdout)?)?;
-        let pkgsjson = pkgsjson
-            .iter()
-            .map(|(k, v)| {
-                (
-                    k.split('.').collect::<Vec<_>>()[2..].join("."),
-                    v.version.to_string(),
-                )
-            })
-            .collect::<HashMap<String, String>>();
-        pkgsjson
-    };
 
-    let dbfile = format!("{}/flakespkgs.db", &*CACHEDIR);
-    nixos::createdb(&dbfile, &pkgsout).await?;
+        let dbfile = format!("{}/flakespkgs.db", &*CACHEDIR);
+        let mut out = File::create(&dbfile).context("Failed to create database file")?;
+        out.write_all(&pkgsout)
+            .context("Failed to write decompressed database to file")?;
 
-    // Write version downloaded to file
-    File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?.write_all(nixosversion.as_bytes())?;
+        debug!("Writing nix-data version");
+    }
 
     Ok(format!("{}/flakespkgs.db", &*CACHEDIR))
 }

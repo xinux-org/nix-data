@@ -1,7 +1,7 @@
 use crate::CACHEDIR;
-use anyhow::{anyhow, Context, Result};
+use crate::utils::get_full_ver;
+use anyhow::{Context, Result};
 use log::debug;
-use reqwest::Client;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use std::{
@@ -122,80 +122,6 @@ pub async fn getprofilepkgs_versioned() -> Result<HashMap<String, String>> {
     }
     Ok(out)
 }
-
-async fn get_full_ver() -> Result<String> {
-    // returns full nixos version of system 25.11.asdasd.asd
-    let short_version = std::process::Command::new("sh")
-        .arg("-c")
-        .arg(r"nixos-version | grep -oP '^\d+\.\d+'")
-        .output()
-        .expect("failed to get nixos-version");
-    let v = String::from_utf8(short_version.stdout)?;
-    let url = format!(
-        "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-{}/nixpkgs.ver",
-        v.trim()
-    );
-
-    // Fallback url
-    let url_unstable = "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixpkgs-unstable/nixpkgs.ver";
-
-    let client = Client::new();
-
-    let primary = client
-        .get(url)
-        .header("User-Agent", "rust-reqwest")
-        .send()
-        .await;
-
-    match primary {
-        Ok(resp) if resp.status().is_success() => {
-            return Ok(resp.text().await?);
-        }
-        _ => {
-            eprintln!("Primary nixpkgs.ver fetch failed, trying unstable...");
-        }
-    }
-
-    // Fallback: nixos-unstable
-    let fallback = client
-        .get(url_unstable)
-        .header("User-Agent", "rust-reqwest")
-        .send()
-        .await?;
-
-    if !fallback.status().is_success() {
-        return Err(anyhow!(
-            "Failed to fetch version from both release and unstable channel versions"
-        ));
-    }
-
-    Ok(fallback.text().await?)
-}
-
-// async fn get_full_rev(version: &str) -> Result<String> {
-//     // returns full 821f1a2ebab0f13d6d65170d6bd7d2b3a182efdb
-//     let short = version.split('.').last().unwrap();
-
-//     let url = format!(
-//         "https://api.github.com/repos/xinux-org/nixpkgs/commits/{}",
-//         short
-//     );
-
-//     let client = Client::new();
-
-//     let resp = client
-//         .get(url)
-//         .header("User-Agent", "rust-reqwest")
-//         .send()
-//         .await?;
-
-//     let json: serde_json::Value = resp.json().await?;
-//     let full = json["sha"]
-//         .as_str()
-//         .expect("maybe github API rate limit exceeded")
-//         .to_string();
-//     Ok(full)
-// }
 
 /// Downloads a list of available package versions `packages.db`
 /// and returns the path to the file.
