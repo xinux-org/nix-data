@@ -55,7 +55,7 @@ pub async fn flakespkgs() -> Result<String> {
             "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
             ver_string.trim(),
         );
-        println!("{}", url);
+        // println!("{}", url);
         let mut resp = reqwest::get(&url).await?;
         let mut pkgsout: Vec<u8> = Vec::new();
 

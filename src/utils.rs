@@ -74,7 +74,7 @@ pub async fn get_full_ver() -> Result<String> {
     );
 
     // Fallback url
-    let url_unstable = "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixpkgs-unstable/nixpkgs.ver";
+    let url_unstable = "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-unstable/nixpkgs.ver";
 
     let client = Client::new();
 
