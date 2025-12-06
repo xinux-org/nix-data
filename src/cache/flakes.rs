@@ -39,7 +39,7 @@ pub async fn flakespkgs() -> Result<String> {
     let latestnixpkgsver = get_full_ver().await?;
 
     // Check if latest version is already downloaded
-    // update flakes.pkgs.ver
+    // update flakespkgs.ver
     // Write SYSTEM nixos version and it will be used as
     // an old system version on comparing nixospkgs.ver
     let versionout = Command::new("nixos-version").arg("--json").output()?;
@@ -104,6 +104,16 @@ pub async fn flakespkgs() -> Result<String> {
 /// Returns a list of all installed system packages with their attribute and version
 /// The input `paths` should be the paths to the `configuration.nix` files containing `environment.systemPackages`
 pub async fn getflakepkgs(paths: &[&str]) -> Result<HashMap<String, String>> {
+    // update flakespkgs.ver
+    // Write SYSTEM nixos version and it will be used as
+    // an old system version on comparing nixospkgs.ver
+    let versionout = Command::new("nixos-version").arg("--json").output()?;
+    let version: HashMap<String, String> = serde_json::from_slice(&versionout.stdout)?;
+    let nixosversion = version
+        .get("nixosVersion")
+        .context("No NixOS version found")?;
+    debug!("Writing flakespkgs.ver version");
+    File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?.write_all(&nixosversion.as_bytes())?;
     getnixospkgs(paths, nixos::NixosType::Flake).await
 }
 
