@@ -55,7 +55,7 @@ pub async fn nixpkgs() -> Result<String> {
     }
 
     let url = String::from(
-        "https://raw.githubusercontent.com/xinux-org/database/main/nixps-unstable/nixpkgs.db.br",
+        "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br",
     );
     debug!("Downloading nix-data database");
     let client = reqwest::Client::builder().brotli(true).build()?;
