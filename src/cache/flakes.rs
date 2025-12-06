@@ -112,8 +112,13 @@ pub async fn getflakepkgs(paths: &[&str]) -> Result<HashMap<String, String>> {
     let nixosversion = version
         .get("nixosVersion")
         .context("No NixOS version found")?;
-    debug!("Writing flakespkgs.ver version");
-    File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?.write_all(&nixosversion.as_bytes())?;
+    if nixosversion == &get_full_ver().await?
+        && Path::new(&format!("{}/flakespkgs.db", &*CACHEDIR)).exists()
+    {
+        debug!("Writing new flakespkgs.ver after rebuild");
+        File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?
+            .write_all(&nixosversion.as_bytes())?;
+    }
     getnixospkgs(paths, nixos::NixosType::Flake).await
 }
 
