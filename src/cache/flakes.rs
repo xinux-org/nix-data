@@ -1,7 +1,7 @@
-use crate::CACHEDIR;
 use crate::utils::get_full_ver;
+use crate::CACHEDIR;
 use anyhow::{Context, Result};
-use log::{debug};
+use log::debug;
 use sqlx::SqlitePool;
 use std::{
     collections::{HashMap, HashSet},
@@ -39,10 +39,16 @@ pub async fn flakespkgs() -> Result<String> {
     let latestnixpkgsver = get_full_ver().await?;
 
     // Check if latest version is already downloaded
-    if !Path::new(&format!("{}/flakespkgs.ver", &*CACHEDIR)).exists() {
-        File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?
-            .write_all(&latestnixpkgsver.as_bytes())?;
-    }
+    // update flakes.pkgs.ver
+    // Write SYSTEM nixos version and it will be used as
+    // an old system version on comparing nixospkgs.ver
+    let versionout = Command::new("nixos-version").arg("--json").output()?;
+    let version: HashMap<String, String> = serde_json::from_slice(&versionout.stdout)?;
+    let nixosversion = version
+        .get("nixosVersion")
+        .context("No NixOS version found")?;
+    debug!("Writing flakespkgs.ver version");
+    File::create(format!("{}/flakespkgs.ver", &*CACHEDIR))?.write_all(&nixosversion.as_bytes())?;
 
     if let Ok(prevver) = fs::read_to_string(&format!("{}/flakespkgs.ver", &*CACHEDIR)) {
         if prevver == latestnixpkgsver.clone()
@@ -51,48 +57,46 @@ pub async fn flakespkgs() -> Result<String> {
             debug!("No new version of flakespkgs found");
             return Ok(format!("{}/flakespkgs.db", &*CACHEDIR));
         }
-        let mut url = format!(
-            "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
-            ver_string.trim(),
-        );
-        // println!("{}", url);
-        let mut resp = reqwest::get(&url).await?;
-        let mut pkgsout: Vec<u8> = Vec::new();
-
-        if resp.status().is_success() {
-            debug!(
-                "response getting {:?} pkgs: {:?}",
-                ver_string.trim(),
-                resp.status()
-            );
-            let r = resp.bytes().await?;
-            // println!("Downloaded");
-            let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
-
-            br.read_to_end(&mut pkgsout)
-                .context("Failed to decompress brotli data")?;
-            debug!("Decompressed");
-        } else {
-            url = "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br".to_string();
-            debug!("{}", url);
-            resp = reqwest::get(url).await?;
-            debug!("response getting latest unstable pkgs: {:?}", resp.status());
-            if resp.status().is_success() {
-                let r = resp.bytes().await?;
-                debug!("Downloaded");
-                let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
-                br.read_to_end(&mut pkgsout)?;
-                debug!("Decompressed");
-            }
-        }
-
-        let dbfile = format!("{}/flakespkgs.db", &*CACHEDIR);
-        let mut out = File::create(&dbfile).context("Failed to create database file")?;
-        out.write_all(&pkgsout)
-            .context("Failed to write decompressed database to file")?;
-
-        debug!("Writing nix-data version");
     }
+    let mut url = format!(
+        "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
+        ver_string.trim(),
+    );
+    // println!("{}", url);
+    let mut resp = reqwest::get(&url).await?;
+    let mut pkgsout: Vec<u8> = Vec::new();
+
+    if resp.status().is_success() {
+        debug!(
+            "response getting {:?} pkgs: {:?}",
+            ver_string.trim(),
+            resp.status()
+        );
+        let r = resp.bytes().await?;
+        // println!("Downloaded");
+        let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
+
+        br.read_to_end(&mut pkgsout)
+            .context("Failed to decompress brotli data")?;
+        debug!("Decompressed");
+    } else {
+        url = "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br".to_string();
+        debug!("{}", url);
+        resp = reqwest::get(url).await?;
+        debug!("response getting latest unstable pkgs: {:?}", resp.status());
+        if resp.status().is_success() {
+            let r = resp.bytes().await?;
+            debug!("Downloaded");
+            let mut br = brotli::Decompressor::new(r.as_ref(), 4096);
+            br.read_to_end(&mut pkgsout)?;
+            debug!("Decompressed");
+        }
+    }
+
+    let dbfile = format!("{}/flakespkgs.db", &*CACHEDIR);
+    let mut out = File::create(&dbfile).context("Failed to create database file")?;
+    out.write_all(&pkgsout)
+        .context("Failed to write decompressed database to file")?;
 
     Ok(format!("{}/flakespkgs.db", &*CACHEDIR))
 }
@@ -104,6 +108,7 @@ pub async fn getflakepkgs(paths: &[&str]) -> Result<HashMap<String, String>> {
 }
 
 pub fn uptodate() -> Result<Option<(String, String)>> {
+    // returns old and new flake versions.
     let flakesver = fs::read_to_string(&format!("{}/flakespkgs.ver", &*CACHEDIR))?;
     let nixosver = fs::read_to_string(&format!("{}/nixospkgs.ver", &*CACHEDIR))?;
     let flakeslast = flakesver

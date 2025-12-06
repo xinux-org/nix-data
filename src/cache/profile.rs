@@ -1,5 +1,5 @@
-use crate::CACHEDIR;
 use crate::utils::get_full_ver;
+use crate::CACHEDIR;
 use anyhow::{Context, Result};
 use log::debug;
 use serde::Deserialize;
@@ -198,6 +198,9 @@ pub async fn nixpkgslatest() -> Result<String> {
             .context("Failed to write decompressed database to file")?;
 
         debug!("Writing nix-data version");
+        // update latestnixpkgsver
+        File::create(format!("{}/nixpkgs.ver", &*CACHEDIR))?
+            .write_all(&latestnixpkgsver.as_bytes())?;
     }
 
     Ok(format!("{}/nixpkgs.db", &*CACHEDIR))
