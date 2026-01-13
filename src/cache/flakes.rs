@@ -43,13 +43,12 @@ pub async fn flakespkgs() -> Result<String> {
         .get("nixosVersion")
         .context("No NixOS version found")?;
 
-    if let Ok(prevver) = fs::read_to_string(format!("{}/flakespkgs.ver", &*CACHEDIR)) {
-        if prevver == nixosversion.clone()
-            && Path::new(&format!("{}/flakespkgs.db", &*CACHEDIR)).exists()
-        {
-            debug!("No new version of flakespkgs found");
-            return Ok(format!("{}/flakespkgs.db", &*CACHEDIR));
-        }
+    if let Ok(prevver) = fs::read_to_string(format!("{}/flakespkgs.ver", &*CACHEDIR))
+        && prevver == nixosversion.clone()
+        && Path::new(&format!("{}/flakespkgs.db", &*CACHEDIR)).exists()
+    {
+        debug!("No new version of flakespkgs found");
+        return Ok(format!("{}/flakespkgs.db", &*CACHEDIR));
     }
     let mut url = format!(
         "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",

@@ -1,7 +1,7 @@
 [package]
 name = "nix-data"
 version = "0.0.3"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 description = "A set of modules for easily managing Nix and NixOS packages and options"
 repository = "https://github.com/xinux-org/nix-data"

@@ -1,8 +1,8 @@
-use crate::utils::get_full_ver;
 use crate::CACHEDIR;
-use anyhow::{anyhow, Context, Result};
+use crate::utils::get_full_ver;
+use anyhow::{Context, Result, anyhow};
 use log::debug;
-use sqlx::{migrate::MigrateDatabase, Row, Sqlite, SqlitePool};
+use sqlx::{Row, Sqlite, SqlitePool, migrate::MigrateDatabase};
 use std::{
     collections::{HashMap, HashSet},
     fs::{self, File},
@@ -33,13 +33,12 @@ pub async fn nixospkgs() -> Result<String> {
     // hash of commit like: 25.11.asdasd.asd
     let latestnixpkgsver = get_full_ver().await?;
 
-    if let Ok(prevver) = fs::read_to_string(format!("{}/nixospkgs.ver", &*CACHEDIR)) {
-        if prevver == latestnixpkgsver.clone()
-            && Path::new(&format!("{}/nixospkgs.db", &*CACHEDIR)).exists()
-        {
-            debug!("No new version of flakespkgs found");
-            return Ok(format!("{}/nixospkgs.db", &*CACHEDIR));
-        }
+    if let Ok(prevver) = fs::read_to_string(format!("{}/nixospkgs.ver", &*CACHEDIR))
+        && prevver == latestnixpkgsver.clone()
+        && Path::new(&format!("{}/nixospkgs.db", &*CACHEDIR)).exists()
+    {
+        debug!("No new version of flakespkgs found");
+        return Ok(format!("{}/nixospkgs.db", &*CACHEDIR));
     }
     let mut url = format!(
         "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",

@@ -1,5 +1,5 @@
 use crate::CACHEDIR;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use log::info;
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -12,8 +12,8 @@ use std::{
 };
 
 use super::{
-    nixos::{self, getnixospkgs, nixospkgs},
     NixPkgList,
+    nixos::{self, getnixospkgs, nixospkgs},
 };
 
 /// Gets a list of all packages in legacy NixOS systems with their name and version.
@@ -38,12 +38,12 @@ pub async fn legacypkgs() -> Result<String> {
     }
 
     // Check if latest version is already downloaded
-    if let Ok(prevver) = fs::read_to_string(format!("{}/legacypkgs.ver", &*CACHEDIR)) {
-        if prevver.eq(nixosversion) && Path::new(&format!("{}/legacypkgs.db", &*CACHEDIR)).exists()
-        {
-            info!("No new version of NixOS legacy found");
-            return Ok(format!("{}/legacypkgs.db", &*CACHEDIR));
-        }
+    if let Ok(prevver) = fs::read_to_string(format!("{}/legacypkgs.ver", &*CACHEDIR))
+        && prevver.eq(nixosversion)
+        && Path::new(&format!("{}/legacypkgs.db", &*CACHEDIR)).exists()
+    {
+        info!("No new version of NixOS legacy found");
+        return Ok(format!("{}/legacypkgs.db", &*CACHEDIR));
     }
 
     async fn downloadrelease(relver: &str, nixosversion: &str) -> Result<HashMap<String, String>> {
@@ -91,7 +91,10 @@ pub async fn legacypkgs() -> Result<String> {
             println!("Decompressed");
             pkgsjson
         } else {
-            let url = format!("https://raw.githubusercontent.com/xinux-org/registry/main/nixos-unstable/{}.json.br", rev);
+            let url = format!(
+                "https://raw.githubusercontent.com/xinux-org/registry/main/nixos-unstable/{}.json.br",
+                rev
+            );
             println!("{}", url);
             let resp = reqwest::get(&url).await?;
             if resp.status().is_success() {

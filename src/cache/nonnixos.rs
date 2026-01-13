@@ -1,5 +1,5 @@
 use crate::CACHEDIR;
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use log::{debug, info};
 use std::{
     fs::{self, File},
@@ -45,13 +45,12 @@ pub async fn nixpkgs() -> Result<String> {
         .unwrap_or(&latestnixpkgsver);
     info!("latestnixosver: {}", latestnixpkgsver);
     // Check if latest version is already downloaded
-    if let Ok(prevver) = fs::read_to_string(format!("{}/nonnixospkgs.ver", &*CACHEDIR)) {
-        if prevver == latestnixpkgsver
-            && Path::new(&format!("{}/nonnixospkgs.db", &*CACHEDIR)).exists()
-        {
-            debug!("No new version of nixpkgs found");
-            return Ok(format!("{}/nonnixospkgs.db", &*CACHEDIR));
-        }
+    if let Ok(prevver) = fs::read_to_string(format!("{}/nonnixospkgs.ver", &*CACHEDIR))
+        && prevver == latestnixpkgsver
+        && Path::new(&format!("{}/nonnixospkgs.db", &*CACHEDIR)).exists()
+    {
+        debug!("No new version of nixpkgs found");
+        return Ok(format!("{}/nonnixospkgs.db", &*CACHEDIR));
     }
 
     let url = String::from(

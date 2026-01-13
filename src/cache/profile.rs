@@ -1,5 +1,5 @@
-use crate::utils::get_full_ver;
 use crate::CACHEDIR;
+use crate::utils::get_full_ver;
 use anyhow::{Context, Result};
 use log::debug;
 use serde::Deserialize;
@@ -143,14 +143,14 @@ pub async fn nixpkgslatest() -> Result<String> {
     // hash of commit like: 25.11.asdasd.asd
     let latestnixpkgsver = get_full_ver().await?;
 
-    if let Ok(prevver) = fs::read_to_string(format!("{}/nixpkgs.ver", &*CACHEDIR)) {
-        if prevver == latestnixpkgsver.clone()
-            && Path::new(&format!("{}/nixpkgs.db", &*CACHEDIR)).exists()
-        {
-            debug!("No new version of nixpkgs.db found");
-            return Ok(format!("{}/nixpkgs.db", &*CACHEDIR));
-        }
+    if let Ok(prevver) = fs::read_to_string(format!("{}/nixpkgs.ver", &*CACHEDIR))
+        && prevver == latestnixpkgsver.clone()
+        && Path::new(&format!("{}/nixpkgs.db", &*CACHEDIR)).exists()
+    {
+        debug!("No new version of nixpkgs.db found");
+        return Ok(format!("{}/nixpkgs.db", &*CACHEDIR));
     }
+
     let mut url = format!(
         "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
         ver_string.trim(),
