@@ -17,6 +17,14 @@ A helper utility to obtain package databse from registry and types for making us
 
 > This is just a library to be used in another softwares.
 
+## Module
+
+NixOS module is to be imported and enabled, so software using nix-data-xinux bindings can read metadata from '`/etc/nix-data/config.json`' and operate accordingly.
+
+## Library
+
+For more information on what bindings this library include, take a look at docs.rs `documentation page` of `nix-data` repository: [docs.rs/nix-data-xinux@latest](https://docs.rs/nix-data-xinux/latest/nix_data_xinux/)
+
 ## License
 
 This project is licensed under the MIT license - see the [LICENSE](LICENSE) file for details.
