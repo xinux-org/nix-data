@@ -82,7 +82,8 @@ pub async fn nixospkgs() -> Result<String> {
         .context("Failed to write decompressed nixospkgs.db to file")?;
 
     debug!("Writing nixospkgs.db latest version");
-    File::create(format!("{}/nixospkgs.ver", &*CACHEDIR))?.write_all(latestnixpkgsver.as_bytes())?;
+    File::create(format!("{}/nixospkgs.ver", &*CACHEDIR))?
+        .write_all(latestnixpkgsver.as_bytes())?;
 
     Ok(format!("{}/nixospkgs.db", &*CACHEDIR))
 }
@@ -105,7 +106,7 @@ pub fn nixosoptions() -> Result<String> {
         resp.url()
             .path_segments()
             .context("No path segments found")?
-            .last()
+            .next_back()
             .context("Last element not found")?
             .to_string()
     } else {
@@ -115,7 +116,7 @@ pub fn nixosoptions() -> Result<String> {
             resp.url()
                 .path_segments()
                 .context("No path segments found")?
-                .last()
+                .next_back()
                 .context("Last element not found")?
                 .to_string()
         } else {

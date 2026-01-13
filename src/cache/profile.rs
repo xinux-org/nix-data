@@ -67,7 +67,7 @@ pub fn getprofilepkgs() -> Result<HashMap<String, ProfilePkg>> {
             } else {
                 format!("{}#{}", originalurl, attrpath)
             };
-            if let Some(first) = pkg.storepaths.get(0) {
+            if let Some(first) = pkg.storepaths.first() {
                 let ver = first
                     .get(44..)
                     .context("Failed to get pkg name from store path")?;
@@ -117,7 +117,7 @@ pub async fn getprofilepkgs_versioned() -> Result<HashMap<String, String>> {
         .fetch_all(&pool)
         .await?;
         if !versions.is_empty() {
-            out.insert(pkg, versions.get(0).unwrap().0.to_string());
+            out.insert(pkg, versions.first().unwrap().0.to_string());
         }
     }
     Ok(out)
@@ -176,7 +176,10 @@ pub async fn nixpkgslatest() -> Result<String> {
         url = "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br".to_string();
         debug!("{}", url);
         resp = reqwest::get(url).await?;
-        debug!("response getting latest nixpkgs-unstable pkgs: {:?}", resp.status());
+        debug!(
+            "response getting latest nixpkgs-unstable pkgs: {:?}",
+            resp.status()
+        );
         if resp.status().is_success() {
             let r = resp.bytes().await?;
             debug!("Downloaded");
@@ -209,7 +212,7 @@ pub async fn unavailablepkgs() -> Result<HashMap<String, String>> {
     let aliases = Command::new("nix-instantiate")
         .arg("--eval")
         .arg("-E")
-        .arg(&format!("with import {} {{}}; builtins.attrNames ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}})", nixpath, nixpath))
+        .arg(format!("with import {} {{}}; builtins.attrNames ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}})", nixpath, nixpath))
         .arg("--json")
         .output()?;
     let aliasstr = String::from_utf8(aliases.stdout)?;
@@ -221,12 +224,12 @@ pub async fn unavailablepkgs() -> Result<HashMap<String, String>> {
         if aliasesout.contains(pkg) && Command::new("nix-instantiate")
                 .arg("--eval")
                 .arg("-E")
-                .arg(&format!("with import {} {{}}; builtins.tryEval ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
+                .arg(format!("with import {} {{}}; builtins.tryEval ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
                 .output()?.status.success() {
             let out = Command::new("nix-instantiate")
                 .arg("--eval")
                 .arg("-E")
-                .arg(&format!("with import {} {{}}; ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
+                .arg(format!("with import {} {{}}; ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
                 .output()?;
             let err = String::from_utf8(out.stderr)?;
             let err = err.strip_prefix("error: ").unwrap_or(&err).trim();

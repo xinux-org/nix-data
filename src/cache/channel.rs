@@ -38,7 +38,7 @@ pub async fn legacypkgs() -> Result<String> {
     }
 
     // Check if latest version is already downloaded
-    if let Ok(prevver) = fs::read_to_string(&format!("{}/legacypkgs.ver", &*CACHEDIR)) {
+    if let Ok(prevver) = fs::read_to_string(format!("{}/legacypkgs.ver", &*CACHEDIR)) {
         if prevver.eq(nixosversion) && Path::new(&format!("{}/legacypkgs.db", &*CACHEDIR)).exists()
         {
             info!("No new version of NixOS legacy found");
@@ -146,8 +146,8 @@ pub fn getenvpkgs() -> Result<HashMap<String, String>> {
 }
 
 pub fn uptodate() -> Result<Option<(String, String)>> {
-    let legacyver = fs::read_to_string(&format!("{}/legacypkgs.ver", &*CACHEDIR))?;
-    let nixosver = fs::read_to_string(&format!("{}/nixospkgs.ver", &*CACHEDIR))?;
+    let legacyver = fs::read_to_string(format!("{}/legacypkgs.ver", &*CACHEDIR))?;
+    let nixosver = fs::read_to_string(format!("{}/nixospkgs.ver", &*CACHEDIR))?;
     if !nixosver.eq(&legacyver) {
         Ok(Some((legacyver, nixosver)))
     } else {
@@ -187,12 +187,12 @@ pub async fn unavailablepkgs(paths: &[&str]) -> Result<HashMap<String, String>> 
         if aliasesout.contains(&pkg) && Command::new("nix-instantiate")
                 .arg("--eval")
                 .arg("-E")
-                .arg(&format!("with import <nixpkgs> {{}}; builtins.tryEval ((self: super: lib.optionalAttrs config.allowAliases (import <nixpkgs/pkgs/top-level/aliases.nix> lib self super)) {{}} {{}}).{}", pkg))
+                .arg(format!("with import <nixpkgs> {{}}; builtins.tryEval ((self: super: lib.optionalAttrs config.allowAliases (import <nixpkgs/pkgs/top-level/aliases.nix> lib self super)) {{}} {{}}).{}", pkg))
                 .output()?.status.success() {
             let out = Command::new("nix-instantiate")
                 .arg("--eval")
                 .arg("-E")
-                .arg(&format!("with import <nixpkgs> {{}}; ((self: super: lib.optionalAttrs config.allowAliases (import <nixpkgs/pkgs/top-level/aliases.nix> lib self super)) {{}} {{}}).{}", pkg))
+                .arg(format!("with import <nixpkgs> {{}}; ((self: super: lib.optionalAttrs config.allowAliases (import <nixpkgs/pkgs/top-level/aliases.nix> lib self super)) {{}} {{}}).{}", pkg))
                 .output()?;
             let err = String::from_utf8(out.stderr)?;
             let err = err.strip_prefix("error: ").unwrap_or(&err).trim();

@@ -45,7 +45,7 @@ pub async fn nixpkgs() -> Result<String> {
         .unwrap_or(&latestnixpkgsver);
     info!("latestnixosver: {}", latestnixpkgsver);
     // Check if latest version is already downloaded
-    if let Ok(prevver) = fs::read_to_string(&format!("{}/nonnixospkgs.ver", &*CACHEDIR)) {
+    if let Ok(prevver) = fs::read_to_string(format!("{}/nonnixospkgs.ver", &*CACHEDIR)) {
         if prevver == latestnixpkgsver
             && Path::new(&format!("{}/nonnixospkgs.db", &*CACHEDIR)).exists()
         {
@@ -62,7 +62,7 @@ pub async fn nixpkgs() -> Result<String> {
     let resp = client.get(url).send().await?;
     if resp.status().is_success() {
         debug!("Writing nix-data database");
-        let mut out = File::create(&format!("{}/nonnixospkgs.db", &*CACHEDIR))?;
+        let mut out = File::create(format!("{}/nonnixospkgs.db", &*CACHEDIR))?;
         {
             let bytes = resp.bytes().await?;
             let mut reader = brotli::Decompressor::new(

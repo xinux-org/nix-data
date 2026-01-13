@@ -1,5 +1,5 @@
 use crate::HOME;
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use reqwest::Client;
 use std::{
     fs::{self, File},
@@ -12,7 +12,7 @@ pub fn refreshicons() -> Result<()> {
     let desktoppath = &format!("{}/.local/share/applications", &*HOME);
     let iconpath = &format!("{}/.local/share/icons/nixrefresh.png", &*HOME);
     fs::create_dir_all(desktoppath)?;
-    fs::create_dir_all(&format!("{}/.local/share/icons", &*HOME))?;
+    fs::create_dir_all(format!("{}/.local/share/icons", &*HOME))?;
 
     // Clean up old files
     for filename in (fs::read_dir(desktoppath)?).flatten() {
@@ -23,8 +23,7 @@ pub fn refreshicons() -> Result<()> {
         }
     }
 
-    for filename in
-        (fs::read_dir(&format!("{}/.nix-profile/share/applications", &*HOME))?).flatten()
+    for filename in (fs::read_dir(format!("{}/.nix-profile/share/applications", &*HOME))?).flatten()
     {
         let filepath = filename.path().to_str().context("file path")?.to_string();
         let localpath = format!(

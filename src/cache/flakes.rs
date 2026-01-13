@@ -132,7 +132,7 @@ pub async fn unavailablepkgs(paths: &[&str]) -> Result<HashMap<String, String>> 
     let nixpath = if let Some(rev) = version.get("nixpkgsRevision") {
         Command::new("nix")
             .arg("eval")
-            .arg(&format!("nixpkgs/{}#path", rev))
+            .arg(format!("nixpkgs/{}#path", rev))
             .output()?
             .stdout
     } else {
@@ -148,7 +148,7 @@ pub async fn unavailablepkgs(paths: &[&str]) -> Result<HashMap<String, String>> 
     let aliases = Command::new("nix-instantiate")
         .arg("--eval")
         .arg("-E")
-        .arg(&format!("with import {} {{}}; builtins.attrNames ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}})", nixpath, nixpath))
+        .arg(format!("with import {} {{}}; builtins.attrNames ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}})", nixpath, nixpath))
         .arg("--json")
         .output()?;
     let aliasstr = String::from_utf8(aliases.stdout)?;
@@ -176,12 +176,12 @@ pub async fn unavailablepkgs(paths: &[&str]) -> Result<HashMap<String, String>> 
         if aliasesout.contains(&pkg) && Command::new("nix-instantiate")
                 .arg("--eval")
                 .arg("-E")
-                .arg(&format!("with import {} {{}}; builtins.tryEval ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
+                .arg(format!("with import {} {{}}; builtins.tryEval ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
                 .output()?.status.success() {
             let out = Command::new("nix-instantiate")
                 .arg("--eval")
                 .arg("-E")
-                .arg(&format!("with import {} {{}}; ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
+                .arg(format!("with import {} {{}}; ((self: super: lib.optionalAttrs config.allowAliases (import {}/pkgs/top-level/aliases.nix lib self super)) {{}} {{}}).{}", nixpath, nixpath, pkg))
                 .output()?;
             let err = String::from_utf8(out.stderr)?;
             let err = err.strip_prefix("error: ").unwrap_or(&err).trim();
