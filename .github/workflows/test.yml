@@ -1,4 +1,4 @@
-name: Flake check & build (nix-data)
+name: Test CI
 
 on: [push, pull_request]
 
