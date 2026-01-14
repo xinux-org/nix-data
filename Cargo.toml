@@ -1,6 +1,6 @@
 [package]
 name = "nix-data-xinux"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2024"
 license = "MIT"
 description = "A set of modules for easily managing Nix and NixOS packages and options"
