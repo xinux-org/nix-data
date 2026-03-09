@@ -9,7 +9,7 @@ on:
 jobs:
   publish:
     name: Publish
-    runs-on: self-hosted
+    runs-on: testing
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
