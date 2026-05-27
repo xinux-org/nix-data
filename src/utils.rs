@@ -68,12 +68,12 @@ pub async fn get_full_ver() -> Result<String> {
         .expect("failed to get nixos-version");
     let v = String::from_utf8(short_version.stdout)?;
     let url = format!(
-        "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-{}/nixpkgs.ver",
+        "https://git.oss.uzinfocom.uz/xinux/database/raw/branch/main/nixos-{}/nixpkgs.ver",
         v.trim()
     );
 
     // Fallback url
-    let url_unstable = "https://raw.githubusercontent.com/xinux-org/database/refs/heads/main/nixos-unstable/nixpkgs.ver";
+    let url_unstable = "https://git.oss.uzinfocom.uz/xinux/database/raw/branch/main/nixos-unstable/nixpkgs.ver";
 
     let client = Client::new();
 

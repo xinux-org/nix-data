@@ -152,7 +152,7 @@ pub async fn nixpkgslatest() -> Result<String> {
     }
 
     let mut url = format!(
-        "https://raw.githubusercontent.com/xinux-org/database/main/nixos-{}/nixpkgs.db.br",
+        "https://git.oss.uzinfocom.uz/xinux/database/raw/branch/main/nixos-{}/nixpkgs.db.br",
         ver_string.trim(),
     );
     // println!("{}", url);
@@ -173,7 +173,7 @@ pub async fn nixpkgslatest() -> Result<String> {
             .context("Failed to decompress brotli data")?;
         debug!("Decompressed");
     } else {
-        url = "https://raw.githubusercontent.com/xinux-org/database/main/nixos-unstable/nixpkgs.db.br".to_string();
+        url = "https://git.oss.uzinfocom.uz/xinux/database/raw/branch/main/nixos-unstable/nixpkgs.db.br".to_string();
         debug!("{}", url);
         resp = reqwest::get(url).await?;
         debug!(
