@@ -3,5 +3,4 @@
 *.txt
 /.direnv
 /result
-/src/main.rs
 /target
