@@ -25,7 +25,7 @@ async fn get_full_rev(version: &str) -> Result<String, anyhow::Error> {
     let short = version.split('.').next_back().unwrap();
 
     let url = format!(
-        "https://api.github.com/repos/NixOS/nixpkgs/commits/{}",
+        "https://git.oss.uzinfocom.uz/api/v1/repos/xinux/nixpkgs/commits?sha={}",
         short
     );
 
@@ -38,7 +38,7 @@ async fn get_full_rev(version: &str) -> Result<String, anyhow::Error> {
         .await?;
 
     let json: serde_json::Value = resp.json().await?;
-    let full = json["sha"].as_str().unwrap().to_string();
+    let full = json[0]["sha"].as_str().unwrap().to_string();
     Ok(full)
 }
 
