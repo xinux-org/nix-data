@@ -76,8 +76,7 @@ pub async fn legacypkgs() -> Result<String> {
     // Get list of packages
     let pkgout = if let Some(rev) = version.get("nixpkgsRevision") {
         let url = format!(
-            // https://raw.githubusercontent.com/xinux-org/registry/refs/heads/main/data/nixos-{}/{}.json.br
-            "https://raw.githubusercontent.com/xinux-org/registry/main/data/nixos-{}/{}.json.br",
+            "https://git.oss.uzinfocom.uz/xinux/registry/raw/branch/main/data/nixos-{}/{}.json.br",
             relver, rev
         );
         println!("{}", url);
@@ -93,7 +92,7 @@ pub async fn legacypkgs() -> Result<String> {
             pkgsjson
         } else {
             let url = format!(
-                "https://raw.githubusercontent.com/xinux-org/registry/main/data/nixos-unstable/{}.json.br",
+                "https://git.oss.uzinfocom.uz/xinux/registry/raw/branch/main/data/nixos-unstable/{}.json.br",
                 rev
             );
             println!("{}", url);

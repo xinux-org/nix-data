@@ -5,10 +5,10 @@ use tokio::runtime::Runtime;
 fn main() {
     let rt = Runtime::new().expect("Tokio runtime error here");
 
-    let foo = rt
+    let full_ver = rt
         .block_on(get_full_ver())
         .expect("Errro getting on full version 2x.xx.xx.8bb5646e0bed");
-    println!("get_full_rev: {:?}", rt.block_on(get_full_rev(&foo)));
+    println!("get_full_rev: {:?}", rt.block_on(get_full_rev(&full_ver)));
     println!("get_full_ver: {:?}", rt.block_on(get_full_ver()));
     println!("latest nixospkgs hash: {:?}", rt.block_on(nixospkgs()));
 
@@ -22,7 +22,7 @@ async fn nixospkgs() -> Result<String, anyhow::Error> {
     nix_data_xinux::cache::flakes::flakespkgs().await
 }
 async fn get_full_rev(version: &str) -> Result<String, anyhow::Error> {
-    let short = version.split('.').last().unwrap();
+    let short = version.split('.').next_back().unwrap();
 
     let url = format!(
         "https://api.github.com/repos/NixOS/nixpkgs/commits/{}",
