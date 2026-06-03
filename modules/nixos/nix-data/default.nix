@@ -24,7 +24,7 @@ in
       ];
       visible = false;
       warn = true;
-      use = warnIf (oldestSupportedReleaseIsAtLeast 2511) "Obsolete option `${showOption from}' is used. It was renamed to `${showOption to}'.";
+      use = warnIf (oldestSupportedReleaseIsAtLeast 2605) "Obsolete option `${showOption from}' is used. It was renamed to `${showOption to}'.";
     })
   ];
 
