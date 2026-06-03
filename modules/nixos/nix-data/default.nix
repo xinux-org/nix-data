@@ -13,12 +13,12 @@ in
   imports = [
     (lib.mkRenamedOptionModuleWith {
       sinceRelease = 2605;
-      to = [
+      from = [
         "programs"
         "nix-data"
         "flakearg"
       ];
-      from = [
+      to = [
         "programs"
         "nix-data"
         "hostname"
