@@ -14,9 +14,13 @@ in
     (lib.mkRenamedOptionModuleWith {
       sinceRelease = 2605;
       from = [
+        "programs"
+        "nix-data"
         "flakearg"
       ];
       to = [
+        "programs"
+        "nix-data"
         "hostname"
       ];
     })
