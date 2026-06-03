@@ -12,7 +12,7 @@ in
 {
   imports = [
     (lib.mkRenamedOptionModuleWith {
-      sinceRelease = 2605;
+      sinceRelease = 2611;
       from = [
         "programs"
         "nix-data"
