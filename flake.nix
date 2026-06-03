@@ -2,7 +2,7 @@
   inputs = {
     nixpkgs.url = "git+https://git.oss.uzinfocom.uz/xinux/nixpkgs?ref=nixos-unstable&shallow=1";
     xinux-lib = {
-      url = "git+https://git.oss.uzinfocom.uz/xinux/lib?&shallow=1";
+      url = "git+https://git.oss.uzinfocom.uz/xinux/lib?shallow=1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -11,7 +11,13 @@
     inputs:
     inputs.xinux-lib.mkFlake {
       inherit inputs;
-      alias.shells.default = "nix-data";
       src = ./.;
+
+      alias.shells.default = "nix-data";
+
+      # Extra nix flags to set
+      outputs-builder = channels: {
+        formatter = channels.nixpkgs.nixfmt-tree;
+      };
     };
 }

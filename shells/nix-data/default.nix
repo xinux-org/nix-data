@@ -11,6 +11,7 @@
   pkg-config,
   sqlite,
   nixd,
+  nixfmt,
   ...
 }:
 mkShell {
@@ -25,6 +26,7 @@ mkShell {
     openssl
     pkg-config
     sqlite
+    nixfmt
   ];
 
   # Set Environment Variables
