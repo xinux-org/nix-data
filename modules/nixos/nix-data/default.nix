@@ -11,7 +11,7 @@ let
 in
 {
   imports = [
-    (lib.doRename {
+    (lib.doRename rec {
       from = [
         "programs"
         "nix-data"
