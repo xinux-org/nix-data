@@ -11,8 +11,7 @@ let
 in
 {
   imports = [
-    (lib.mkRenamedOptionModuleWith {
-      sinceRelease = 2611;
+    (lib.doRename {
       from = [
         "programs"
         "nix-data"
@@ -23,6 +22,9 @@ in
         "nix-data"
         "hostname"
       ];
+      visible = false;
+      warn = true;
+      use = warnIf true "Obsolete option `${showOption from}' is used. It was renamed to `${showOption to}'.";
     })
   ];
 
