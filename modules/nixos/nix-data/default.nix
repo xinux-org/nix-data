@@ -36,7 +36,7 @@ in
         example = literalExpression ''"/etc/nixos/flake.nix"'';
         description = "Where programs using nix-data looks for your system flake file.";
       };
-      flakearg = mkOption {
+      hostname = mkOption {
         type = with types; nullOr str;
         default = null;
         example = literalExpression "user";
